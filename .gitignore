@@ -47,3 +47,12 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# renv library (local cache, not committed)
+renv/library/
+renv/staging/
+renv/python/
+renv/sandbox/
+
+# Simulation output
+simulations/*/results/
