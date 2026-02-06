@@ -3,3 +3,4 @@
 # Add packages here as your simulations grow.
 
 library(data.table)
+library(ggplot2)
