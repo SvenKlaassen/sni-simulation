@@ -12,16 +12,32 @@
 #' @return Named list of DGP objects
 get_dgp_registry <- function() {
 
-  # --- Lipschitz continuous (not C1): tent density with kink at x=0.5 ---
-  # f(x) = 4x for x in [0, 0.5], f(x) = 4(1-x) for x in (0.5, 1]
-  # Integrates to 1. Lipschitz with constant 4, not differentiable at 0.5.
-  lipschitz_density <- function(x) {
-    ifelse(x <= 0.5, 4 * x, 4 * (1 - x))
+  # --- Lipschitz continuous (not C1): mixture of narrow triangles ---
+  # Multiple sharp peaks increase local Lipschitz constants.
+  tri_centers <- c(0.15, 0.35, 0.55, 0.75, 0.90)
+  tri_widths  <- c(0.05, 0.04, 0.06, 0.04, 0.03)  # half-widths
+  tri_weights <- c(0.25, 0.20, 0.25, 0.20, 0.10)
+
+  tri_density <- function(x, center, half_width) {
+    u <- (x - center) / half_width
+    ifelse(abs(u) <= 1, (1 - abs(u)) / half_width, 0)
   }
+
+  lipschitz_density <- function(x) {
+    dens <- 0
+    for (ii in seq_along(tri_centers)) {
+      dens <- dens + tri_weights[ii] *
+        tri_density(x, tri_centers[ii], tri_widths[ii])
+    }
+    dens
+  }
+
   lipschitz_sample <- function(n) {
-    # Inverse CDF: F(x) = 2x^2 on [0,0.5], F(x) = 1-2(1-x)^2 on (0.5,1]
-    u <- runif(n)
-    ifelse(u <= 0.5, sqrt(u / 2), 1 - sqrt((1 - u) / 2))
+    comp <- sample(seq_along(tri_centers), size = n, replace = TRUE,
+                   prob = tri_weights)
+    u1 <- runif(n)
+    u2 <- runif(n)
+    tri_centers[comp] + tri_widths[comp] * (u1 - u2)
   }
 
   # --- C1: Beta(2,2) ---
@@ -58,7 +74,7 @@ get_dgp_registry <- function() {
 
   list(
     lipschitz = list(
-      name = "Lipschitz (tent)", class = "Lipschitz",
+      name = "Lipschitz (multi-triangle)", class = "Lipschitz",
       sample = lipschitz_sample, density = lipschitz_density
     ),
     C1 = list(
